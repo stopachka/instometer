@@ -81,11 +81,10 @@ def get_shared_count():
 # Servo Worker 
 
 def choose_denominator(count): 
-    if (count < 50):
-        return 50 
-
     return 10 ** math.ceil(
-        math.log10(count)
+        math.log10(
+            max(2, count)
+        )
     )
 
 def frac_to_angle(count, denominator): 
