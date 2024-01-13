@@ -98,6 +98,7 @@ def count_to_angle(count):
     return frac_to_angle(count, denom) 
 
 def step_towards(start_angle, end_angle): 
+    num_left = end_angle - start_angle 
     step = math.copysign(1, num_left)
     
     new_angle = start_angle + step 
