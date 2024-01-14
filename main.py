@@ -78,6 +78,9 @@ def servo_worker():
 
         time.sleep(0.01)
 
+# ---- 
+# OLED Worker 
+
 def oled_worker():
     draw_text("...") 
     print("[oled-worker] starting")
@@ -121,6 +124,9 @@ def on_open(ws):
         "token": API_KEY
     })
     ws.send(init_message)
+
+# ----
+# Main 
 
 if __name__ == "__main__":
     servo_thread = threading.Thread(target=servo_worker, daemon=True)
