@@ -8,6 +8,7 @@ import json
 import concurrent.futures
 import backoff 
 import sys 
+import queue
 
 USE_REAL_HARDWARE = not os.environ.get('INSTOMETER_VIRTUAL_HARDWARE')
 
@@ -45,6 +46,7 @@ def get_shared_count():
 # Workers 
 
 shutdown_event = threading.Event()
+exception_queue = queue.Queue() 
 
 # -------------
 # Servo Worker 
@@ -77,31 +79,37 @@ def step_towards(start_angle, end_angle):
     return new_angle 
 
 def servo_worker():
-    set_servo_angle(0) 
-    print("[servo-worker] starting")
-    current_angle = 0
-    while not shutdown_event.is_set():
-        target_angle = count_to_angle(get_shared_count())
-        if (current_angle != target_angle): 
-            next_angle = step_towards(current_angle, target_angle) 
-            set_servo_angle(next_angle)
-            current_angle = next_angle
+    try: 
+        set_servo_angle(0) 
+        print("[servo-worker] starting")
+        current_angle = 0
+        while not shutdown_event.is_set():
+            target_angle = count_to_angle(get_shared_count())
+            if (current_angle != target_angle): 
+                next_angle = step_towards(current_angle, target_angle) 
+                set_servo_angle(next_angle)
+                current_angle = next_angle
 
-        time.sleep(0.01)
+            time.sleep(0.01)
+    except Exception as e:
+        exception_queue.put(e)
 
 # ---- 
 # OLED Worker 
 
 def oled_worker():
-    draw_text("...") 
-    print("[oled-worker] starting")
-    last_count = None
-    while not shutdown_event.is_set():
-        current_count = get_shared_count() 
-        if current_count != last_count:
-            draw_text(f"{current_count}")
-            last_count = current_count 
-        time.sleep(0.01)
+    try:
+        draw_text("...") 
+        print("[oled-worker] starting")
+        last_count = None
+        while not shutdown_event.is_set():
+            current_count = get_shared_count() 
+            if current_count != last_count:
+                draw_text(f"{current_count}")
+                last_count = current_count 
+            time.sleep(0.01)
+    except Exception as e:
+        exception_queue.put(e)
 
 # ------
 # Socket Worker 
@@ -133,7 +141,7 @@ def on_open(ws):
 @backoff.on_exception(backoff.expo,
                       websocket.WebSocketException,
                       max_tries=5)
-def websocket_worker():
+def reconnecting_websocket(): 
     ws = websocket.WebSocketApp("wss://api.instantdb.com/dash/session_counts",
                                 on_open=on_open,
                                 on_message=on_message,
@@ -141,6 +149,11 @@ def websocket_worker():
                                 on_close=on_close)
     ws.run_forever(ping_interval=10)
 
+def websocket_worker():
+    try:
+        reconnecting_websocket()
+    except Exception as e:
+        exception_queue.put(e)
 
 # ----
 # Main 
@@ -150,6 +163,7 @@ if __name__ == "__main__":
     servo_thread = threading.Thread(target=servo_worker, daemon=True)
     oled_thread = threading.Thread(target=oled_worker, daemon=True)
     websocket_thread = threading.Thread(target=websocket_worker, daemon=True)
+    
     def shutdown_hardware():
         shutdown_event.set() 
         servo_thread.join()
@@ -161,12 +175,12 @@ if __name__ == "__main__":
         servo_thread.start()
         oled_thread.start()
         websocket_thread.start()
-
-        servo_thread.join()
-        oled_thread.join()
-        websocket_thread.join()
+        
+        e = exception_queue.get() 
+        raise e 
     except KeyboardInterrupt:
         shutdown_hardware()
+        print("goodbye :)")
         sys.exit(0)
     except Exception as e:
         shutdown_hardware()
