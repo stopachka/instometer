@@ -3,9 +3,7 @@ import threading
 import os 
 import math 
 import websocket
-import rel
 import json
-import concurrent.futures
 import backoff 
 import sys 
 import queue
@@ -178,10 +176,12 @@ if __name__ == "__main__":
         
         e = exception_queue.get() 
         raise e 
+    
     except KeyboardInterrupt:
         shutdown_hardware()
         print("goodbye :)")
         sys.exit(0)
+    
     except Exception as e:
         shutdown_hardware()
         draw_text("err :<")
