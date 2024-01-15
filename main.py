@@ -1,7 +1,10 @@
-from time import sleep
+import time
 import threading
 import os 
 import math 
+import websocket
+import rel
+import json
 
 USE_REAL_HARDWARE = not os.environ.get('INSTOMETER_VIRTUAL_HARDWARE')
 
@@ -94,14 +97,6 @@ def oled_worker():
 
 # ------
 # Sockets 
-
-import websocket
-import _thread
-import time
-import rel
-import json
-import os 
-import math 
 
 API_KEY = os.environ.get('INSTOMETER_API_KEY') 
 
