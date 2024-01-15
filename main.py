@@ -5,6 +5,9 @@ import math
 import websocket
 import rel
 import json
+import concurrent.futures
+import backoff 
+import sys 
 
 USE_REAL_HARDWARE = not os.environ.get('INSTOMETER_VIRTUAL_HARDWARE')
 
@@ -37,6 +40,11 @@ def set_shared_count(new_count):
 
 def get_shared_count():
     return shared_count 
+
+# ---------
+# Workers 
+
+shutdown_event = threading.Event()
 
 # -------------
 # Servo Worker 
@@ -72,7 +80,7 @@ def servo_worker():
     set_servo_angle(0) 
     print("[servo-worker] starting")
     current_angle = 0
-    while True:
+    while not shutdown_event.is_set():
         target_angle = count_to_angle(get_shared_count())
         if (current_angle != target_angle): 
             next_angle = step_towards(current_angle, target_angle) 
@@ -88,7 +96,7 @@ def oled_worker():
     draw_text("...") 
     print("[oled-worker] starting")
     last_count = None
-    while True:
+    while not shutdown_event.is_set():
         current_count = get_shared_count() 
         if current_count != last_count:
             draw_text(f"{current_count}")
@@ -96,52 +104,71 @@ def oled_worker():
         time.sleep(0.01)
 
 # ------
-# Sockets 
+# Socket Worker 
 
 API_KEY = os.environ.get('INSTOMETER_API_KEY') 
 
 def on_message(ws, message):
-    print("[ws] message", message) 
+    print("[ws] message", message)
     m = json.loads(message)
-    count = m['count'] 
-    set_shared_count(count) 
+    count = m['count']
+    set_shared_count(count)
 
 def on_error(ws, error):
     print("[ws] error", error)
+    raise websocket.WebSocketException(error) 
 
 def on_close(ws, close_status_code, close_msg):
-    print("[ws] conn closed")
+    print("[ws] connection closed")
+    raise websocket.WebSocketException("Connection closed")
 
 def on_open(ws):
-    print("[ws] init")
+    print("[ws] connection opened")
     init_message = json.dumps({
         "type": "init", 
         "token": API_KEY
     })
     ws.send(init_message)
 
+@backoff.on_exception(backoff.expo,
+                      websocket.WebSocketException,
+                      max_tries=5)
+def websocket_worker():
+    ws = websocket.WebSocketApp("wss://api.instantdb.com/dash/session_counts",
+                                on_open=on_open,
+                                on_message=on_message,
+                                on_error=on_error,
+                                on_close=on_close)
+    ws.run_forever(ping_interval=10)
+
+
 # ----
 # Main 
 
+   
 if __name__ == "__main__":
     servo_thread = threading.Thread(target=servo_worker, daemon=True)
-    servo_thread.start()
-
     oled_thread = threading.Thread(target=oled_worker, daemon=True)
-    oled_thread.start()
+    websocket_thread = threading.Thread(target=websocket_worker, daemon=True)
+    def shutdown_hardware():
+        shutdown_event.set() 
+        servo_thread.join()
+        oled_thread.join()
+        set_servo_angle(0)
+        draw_text("...")
+    
+    try: 
+        servo_thread.start()
+        oled_thread.start()
+        websocket_thread.start()
 
-    ws = websocket.WebSocketApp(
-        "wss://api.instantdb.com/dash/session_counts", 
-        on_open=on_open, 
-        on_message=on_message, 
-        on_error=on_error, 
-        on_close=on_close
-    )
-    ws.run_forever(
-        dispatcher=rel, 
-        reconnect=5, 
-        ping_interval=10,
-    )  
-    rel.signal(2, rel.abort)  # Keyboard Interrupt
-    rel.dispatch() 
-
+        servo_thread.join()
+        oled_thread.join()
+        websocket_thread.join()
+    except KeyboardInterrupt:
+        shutdown_hardware()
+        sys.exit(0)
+    except Exception as e:
+        shutdown_hardware()
+        draw_text("err :<")
+        raise e
