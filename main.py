@@ -122,11 +122,9 @@ def on_message(ws, message):
 
 def on_error(ws, error):
     print("[ws] error", error)
-    raise websocket.WebSocketException(error) 
 
 def on_close(ws, close_status_code, close_msg):
     print("[ws] connection closed")
-    raise websocket.WebSocketException("Connection closed")
 
 def on_open(ws):
     print("[ws] connection opened")
@@ -136,9 +134,7 @@ def on_open(ws):
     })
     ws.send(init_message)
 
-@backoff.on_exception(backoff.expo,
-                      websocket.WebSocketException,
-                      max_tries=5)
+@backoff.on_exception(backoff.expo, websocket.WebSocketException, max_tries=12)
 def reconnecting_websocket(): 
     ws = websocket.WebSocketApp("wss://api.instantdb.com/dash/session_counts",
                                 on_open=on_open,
