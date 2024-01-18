@@ -118,7 +118,7 @@ async def ws_message_handler(ws):
 
 async def websocket_worker(): 
     sleep_secs = 5
-    max_necnnnects = 12
+    max_reconnects = 12
     num_reconnects = 0
     ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
     while True: 
