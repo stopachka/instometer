@@ -99,21 +99,27 @@ async def oled_worker():
 
 API_KEY = os.environ.get('INSTOMETER_API_KEY') 
 
-async def ws_open_handler(ws): 
-    print("[ws] connection opened")
+async def ws_handle_open(ws): 
+    print("[ws] init")
     init_message = json.dumps({
         "type": "init", 
         "token": API_KEY
     })
     await ws.send_message(init_message)
 
-async def ws_message_handler(ws):
+async def ws_message_worker(ws):
     while True:
         message = await ws.get_message()
         print("[ws] message", message)
         m = json.loads(message)
         count = m['count']
         set_shared_count(count) 
+
+async def ws_heartbeat_worker(ws, timeout_secs=10, interval_secs=5):
+    while True: 
+        with trio.fail_after(timeout_secs):
+            await ws.ping()
+        await trio.sleep(interval_secs) 
 
 async def websocket_worker(): 
     sleep_secs = 5
@@ -124,8 +130,10 @@ async def websocket_worker():
         try:
             async with open_websocket_url(ws_uri) as ws:
                 num_reconnects = 0
-                await ws_open_handler(ws)
-                await ws_message_handler(ws)
+                await ws_handle_open(ws)
+                async with trio.open_nursery() as nursery:
+                    nursery.start_soon(ws_heartbeat_worker, ws)
+                    nursery.start_soon(ws_message_worker, ws) 
         except (ConnectionClosed, HandshakeError) as e:
             num_reconnects += 1
             if num_reconnects > max_reconnects:
