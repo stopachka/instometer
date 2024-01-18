@@ -5,7 +5,6 @@ import json
 import sys 
 import trio 
 from trio_websocket import open_websocket_url, ConnectionClosed, HandshakeError
-from contextlib import asynccontextmanager
 
 USE_REAL_HARDWARE = not os.environ.get('INSTOMETER_VIRTUAL_HARDWARE')
 
