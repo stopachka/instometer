@@ -117,6 +117,8 @@ async def ws_message_handler(ws):
         set_shared_count(count) 
 
 async def websocket_worker(): 
+    sleep_secs = 5
+    max_reconnects = 12
     num_reconnects = 0
     ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
     while True: 
@@ -129,7 +131,7 @@ async def websocket_worker():
             if num_reconnects > max_reconnects:
                 raise e
             print(f"[ws] reconnecting in {sleep_secs} seconds")
-            await trio.sleep(5)
+            await trio.sleep(sleep_secs)
 
 # ----
 # Main 
