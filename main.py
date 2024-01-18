@@ -119,7 +119,7 @@ async def reconnecting_websocket(uri, max_reconnects=10, sleep_secs=5):
             await trio.sleep(5)
 
 async def websocket_worker(): 
-    ws_uri = 'ws://localhost:8888/dash/session_counts'
+    ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
     async with reconnecting_websocket(ws_uri) as ws:
         print("[ws] connection opened")
         init_message = json.dumps({
