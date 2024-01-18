@@ -4,7 +4,7 @@ import math
 import json
 import sys 
 import trio 
-import trio_websocket 
+from trio_websocket import open_websocket_url, ConnectionClosed, HandshakeError
 from contextlib import asynccontextmanager
 
 USE_REAL_HARDWARE = not os.environ.get('INSTOMETER_VIRTUAL_HARDWARE')
@@ -100,40 +100,36 @@ async def oled_worker():
 
 API_KEY = os.environ.get('INSTOMETER_API_KEY') 
 
-@asynccontextmanager
-async def reconnecting_websocket(uri, max_reconnects=10, sleep_secs=5):
+async def ws_open_handler(ws): 
+    print("[ws] connection opened")
+    init_message = json.dumps({
+        "type": "init", 
+        "token": API_KEY
+    })
+    await ws.send_message(init_message)
+
+async def ws_message_handler(ws):
+    while True:
+        message = await ws.get_message()
+        print("[ws] message", message)
+        m = json.loads(message)
+        count = m['count']
+        set_shared_count(count) 
+
+async def websocket_worker(): 
     num_reconnects = 0
+    ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
     while True: 
         try:
-            async with trio_websocket.open_websocket_url(uri) as ws:
-                yield ws
-                return
-        except (
-            trio_websocket.ConnectionClosed, 
-            trio_websocket.HandshakeError
-        ) as e:
+            async with open_websocket_url(ws_uri) as ws:
+                await ws_open_handler(ws)
+                await ws_message_handler(ws)
+        except (ConnectionClosed, HandshakeError) as e:
             num_reconnects += 1
             if num_reconnects > max_reconnects:
                 raise e
             print(f"[ws] reconnecting in {sleep_secs} seconds")
             await trio.sleep(5)
-
-async def websocket_worker(): 
-    ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
-    async with reconnecting_websocket(ws_uri) as ws:
-        print("[ws] connection opened")
-        init_message = json.dumps({
-            "type": "init", 
-            "token": API_KEY
-        })
-        await ws.send_message(init_message)
-        while True:
-            message = await ws.get_message()
-            print("[ws] message", message)
-            m = json.loads(message)
-            count = m['count']
-            set_shared_count(count) 
-
 
 # ----
 # Main 
