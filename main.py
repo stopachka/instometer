@@ -118,12 +118,13 @@ async def ws_message_handler(ws):
 
 async def websocket_worker(): 
     sleep_secs = 5
-    max_reconnects = 12
+    max_necnnnects = 12
     num_reconnects = 0
     ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
     while True: 
         try:
             async with open_websocket_url(ws_uri) as ws:
+                num_reconnects = 0
                 await ws_open_handler(ws)
                 await ws_message_handler(ws)
         except (ConnectionClosed, HandshakeError) as e:
