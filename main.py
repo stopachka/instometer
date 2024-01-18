@@ -5,6 +5,7 @@ import json
 import sys 
 import trio 
 import trio_websocket 
+from contextlib import asynccontextmanager
 
 USE_REAL_HARDWARE = not os.environ.get('INSTOMETER_VIRTUAL_HARDWARE')
 
@@ -78,7 +79,6 @@ async def servo_worker():
             next_angle = step_towards(current_angle, target_angle) 
             set_servo_angle(next_angle)
             current_angle = next_angle
-
         await trio.sleep(0.01)
 
 # ---- 
@@ -100,9 +100,27 @@ async def oled_worker():
 
 API_KEY = os.environ.get('INSTOMETER_API_KEY') 
 
+@asynccontextmanager
+async def reconnecting_websocket(uri, max_reconnects=10, sleep_secs=5):
+    num_reconnects = 0
+    while True: 
+        try:
+            async with trio_websocket.open_websocket_url(uri) as ws:
+                yield ws
+                return
+        except (
+            trio_websocket.ConnectionClosed, 
+            trio_websocket.HandshakeError
+        ) as e:
+            num_reconnects += 1
+            if num_reconnects > max_reconnects:
+                raise e
+            print(f"[ws] reconnecting in {sleep_secs} seconds")
+            await trio.sleep(5)
+
 async def websocket_worker(): 
-    ws_uri = 'wss://api.instantdb.com/dash/session_counts'
-    async with trio_websocket.open_websocket_url(ws_uri) as ws:
+    ws_uri = 'ws://localhost:8888/dash/session_counts'
+    async with reconnecting_websocket(ws_uri) as ws:
         print("[ws] connection opened")
         init_message = json.dumps({
             "type": "init", 
@@ -114,15 +132,7 @@ async def websocket_worker():
             print("[ws] message", message)
             m = json.loads(message)
             count = m['count']
-            set_shared_count(count)
-
-async def reconnecting_websocket_worker(): 
-    while True: 
-        try:
-            await websocket_worker()
-        except trio_websocket.ConnectionClosed:
-            print("[ws] connection closed, reconnecting in 5s")
-            await trio.sleep(5) 
+            set_shared_count(count) 
 
 
 # ----
@@ -132,7 +142,7 @@ async def main():
     async with trio.open_nursery() as nursery:
         nursery.start_soon(servo_worker)
         nursery.start_soon(oled_worker)
-        nursery.start_soon(reconnecting_websocket_worker) 
+        nursery.start_soon(websocket_worker) 
    
 if __name__ == "__main__":
     def shutdown_hardware():
