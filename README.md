@@ -2,5 +2,10 @@
 
 ## pi setup 
 
-- Change the location on your pi. raspbi config 
-- Change the password: `passwd` 
+- sudo raspi-config
+- set boot to console autologin
+- set name instometer
+- enable ssh
+- log in via ssh pi@instometer.local
+- enter the default pass
+- change it: `passwd`
