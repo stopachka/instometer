@@ -17,15 +17,6 @@ else:
     def set_servo_angle(angle): 
         print(f"[virtual-servo] set angle = {angle}") 
 
-# ----- 
-# OLED 
-
-if USE_REAL_HARDWARE: 
-    from oled import draw_text 
-else: 
-    def draw_text(text): 
-        print(f"[virtual-oled] draw text = {text}") 
-
 # ------
 # Counter 
 
@@ -78,20 +69,6 @@ async def servo_worker():
             next_angle = step_towards(current_angle, target_angle) 
             set_servo_angle(next_angle)
             current_angle = next_angle
-        await trio.sleep(0.01)
-
-# ---- 
-# OLED Worker 
-
-async def oled_worker():
-    draw_text("...") 
-    print("[oled-worker] starting")
-    last_count = None
-    while True:
-        current_count = get_shared_count() 
-        if current_count != last_count:
-            draw_text(f"{current_count}")
-            last_count = current_count 
         await trio.sleep(0.01)
 
 # ------
@@ -147,7 +124,6 @@ async def websocket_worker():
 async def main():
     async with trio.open_nursery() as nursery:
         nursery.start_soon(servo_worker)
-        nursery.start_soon(oled_worker)
         nursery.start_soon(websocket_worker) 
    
 if __name__ == "__main__":
