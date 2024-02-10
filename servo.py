@@ -15,7 +15,6 @@ servo = AngularServo(
 )
 
 def set_servo_angle(angle): 
-    print(f"[servo] set angle {angle}")
     # the servo is physically positioned 
     # in such a way, that the angle 0 looks 
     # like the angle 180.

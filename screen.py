@@ -132,9 +132,8 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.align import Align
 from rich import box
-from art import text2art 
 
-def render_full_screen_count(count):
+def draw_screen(count):
     console = Console()
     layout = Layout()
 
@@ -148,7 +147,4 @@ def render_full_screen_count(count):
     )
     layout.update(number_panel) 
     console.print(layout, justify="center")
-
-# Example usage:
-render_full_screen_count(300)
 
