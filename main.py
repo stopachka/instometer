@@ -101,7 +101,6 @@ async def ws_handle_open(ws):
 async def ws_message_worker(ws):
     while True:
         message = await ws.get_message()
-        print("[ws] message", message)
         m = json.loads(message)
         count = m['count']
         set_shared_count(count) 
