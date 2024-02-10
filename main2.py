@@ -144,7 +144,7 @@ def render_full_screen_count(count):
         Align(number_text, align="center", vertical="middle"),
         style="bold blue on black", 
         box=box.MINIMAL, 
-        expand=False,
+        expand=True,
     )
     layout.update(number_panel) 
     console.print(layout, justify="center")
