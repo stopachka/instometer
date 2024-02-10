@@ -138,37 +138,16 @@ def render_full_screen_count(count):
     console = Console()
     layout = Layout()
 
-    # Create a Text object for the number, styled to be large
     number_text = Digits(str(count), style="bold blue on black") 
 
-    # Create another Text object for the subtitle
-    subtitle_text = Text("instant users", style="bold blue on black")
-
-    # Center the number text vertically and horizontally
     number_panel = Panel(
-        Align(number_text, align="center", vertical="middle"), 
-        box=box.MINIMAL
+        Align(number_text, align="center", vertical="middle"),
+        style="bold blue on black", 
+        box=box.MINIMAL, 
+        expand=False,
     )
-    
-    # Center the subtitle text horizontally
-    subtitle_panel = Panel(
-        Align(subtitle_text, align="center", vertical="middle"), 
-        box=box.MINIMAL
-    )
-
-    # Update the layout with the panels
-    layout.update(number_panel)
-
-    # Use console height to add padding for vertical centering
-    console_height = console.size.height
-    top_padding = (console_height - 3) // 2  # 3 is approximate height of text
-    bottom_padding = top_padding
-
-    # Print the panels to the console, with padding to center them
-    console.print(Panel("", height=top_padding, style="on black", expand=False, box=box.MINIMAL))
-    console.print(number_panel)
-    console.print(subtitle_panel)
-    console.print(Panel("", height=bottom_padding, style="on black", expand=False, box=box.MINIMAL))
+    layout.update(number_panel) 
+    console.print(layout, justify="center")
 
 # Example usage:
 render_full_screen_count(300)
