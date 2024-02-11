@@ -6,6 +6,7 @@ import sys
 import trio 
 from trio_websocket import open_websocket_url, ConnectionClosed, HandshakeError
 from screen import draw_screen 
+from log import log
 
 USE_REAL_HARDWARE = not os.environ.get('INSTOMETER_VIRTUAL_HARDWARE')
 
@@ -16,7 +17,7 @@ if USE_REAL_HARDWARE:
     from servo import set_servo_angle 
 else: 
     def set_servo_angle(angle): 
-        return None 
+        log.info(f"[virtual-servo] set angle = {angle}") 
 
 # ------
 # Counter 
@@ -62,7 +63,7 @@ def step_towards(start_angle, end_angle):
 
 async def servo_worker():
     set_servo_angle(0) 
-    print("[servo-worker] starting")
+    log.info("[servo-worker] starting")
     current_angle = 0
     while True:
         target_angle = count_to_angle(get_shared_count())
@@ -76,7 +77,7 @@ async def servo_worker():
 # Screen Worker 
 
 async def screen_worker():
-    print("[screen-worker] starting")
+    log.info("[screen-worker] starting")
     last_count = None
     while True:
         current_count = get_shared_count() 
@@ -91,7 +92,7 @@ async def screen_worker():
 API_KEY = os.environ.get('INSTOMETER_API_KEY') 
 
 async def ws_handle_open(ws): 
-    print("[ws] init")
+    log.info("[ws] init")
     init_message = json.dumps({
         "type": "init", 
         "token": API_KEY
@@ -101,6 +102,7 @@ async def ws_handle_open(ws):
 async def ws_message_worker(ws):
     while True:
         message = await ws.get_message()
+        log.info(f"[ws] message {message}")
         m = json.loads(message)
         count = m['count']
         set_shared_count(count) 
@@ -128,7 +130,7 @@ async def websocket_worker():
             num_reconnects += 1
             if num_reconnects > max_reconnects:
                 raise e
-            print(f"[ws] reconnecting in {sleep_secs} seconds")
+            log.info(f"[ws] reconnecting in {sleep_secs} seconds")
             await trio.sleep(sleep_secs)
 
 # ----
@@ -143,14 +145,13 @@ async def main():
 if __name__ == "__main__":
     def shutdown_hardware():
         set_servo_angle(0)
-        draw_text("...")
     try: 
         trio.run(main) 
     except KeyboardInterrupt:
         shutdown_hardware()
-        print("goodbye :)")
+        log.info("goodbye :)")
         sys.exit(0)
     except Exception as e:
         shutdown_hardware()
-        draw_text("err :<")
+        log.error("Uncaught error", e)
         raise e
