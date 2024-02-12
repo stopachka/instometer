@@ -32,7 +32,10 @@ def get_shared_report():
     return shared_report 
 
 def total_count(report):
-    return sum([r['count'] for r in report.values()]) 
+    # (XXX) 
+    # We have some empty sessions. These ~should disappear but 
+    # seem to hang around for a bit. Let's ignore them for now.
+    return sum([r['count'] for k, r in report.items() if k != ''])
 
 # -------------
 # Servo Worker 
