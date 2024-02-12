@@ -13,16 +13,16 @@ def create_report_panel(report):
     table.add_column(max_width=25, style="blue on black")
     table.add_column(max_width=5, justify="right", style="blue on black")
 
-    # Add rows to the table
-    for _, data in report.items():
+    sorted_report_items = sorted(report.items(), key=lambda item: item[1]["count"], reverse=True)
+    top_report_items = sorted_report_items[:5]  
+    for _, data in top_report_items:
         email = data["creator-email"]
         app_title = data["app-title"]
         count = str(data["count"])
         table.add_row(email, app_title, count)
 
-    # Create a panel for the table
     report_panel = Panel(
-        table,
+        Align(table, align="center", vertical="middle"),
         style="bold green on black",
         box=box.MINIMAL,
         expand=True,
