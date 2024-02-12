@@ -20,16 +20,19 @@ else:
         log.info(f"[virtual-servo] set angle = {angle}") 
 
 # ------
-# Counter 
+# Report 
 
-shared_count = 0 
+shared_report = {} 
 
-def set_shared_count(new_count):
-    global shared_count
-    shared_count = new_count 
+def set_shared_report(new_report):
+    global shared_report
+    shared_report = new_report 
 
-def get_shared_count():
-    return shared_count 
+def get_shared_report():
+    return shared_report 
+
+def total_count(report):
+    return sum([r['count'] for r in report.values()]) 
 
 # -------------
 # Servo Worker 
@@ -66,7 +69,7 @@ async def servo_worker():
     log.info("[servo-worker] starting")
     current_angle = 0
     while True:
-        target_angle = count_to_angle(get_shared_count())
+        target_angle = count_to_angle(total_count(get_shared_report()))
         if (current_angle != target_angle): 
             next_angle = step_towards(current_angle, target_angle) 
             set_servo_angle(next_angle)
@@ -78,12 +81,12 @@ async def servo_worker():
 
 async def screen_worker():
     log.info("[screen-worker] starting")
-    last_count = None
+    last_report = None
     while True:
-        current_count = get_shared_count() 
-        if current_count != last_count:
-            draw_screen(f"{current_count}")
-            last_count = current_count 
+        current_report = get_shared_report() 
+        if current_report != last_report:
+            draw_screen(current_report, total_count(current_report))
+            last_report = current_report 
         await trio.sleep(0.01)
 
 # ------
@@ -104,8 +107,8 @@ async def ws_message_worker(ws):
         message = await ws.get_message()
         log.info(f"[ws] message {message}")
         m = json.loads(message)
-        count = m['count']
-        set_shared_count(count) 
+        report = m['report']
+        set_shared_report(report) 
 
 async def ws_heartbeat_worker(ws, timeout_secs=10, interval_secs=5):
     while True: 
@@ -117,7 +120,7 @@ async def websocket_worker():
     sleep_secs = 5
     max_reconnects = 12
     num_reconnects = 0
-    ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
+    ws_uri = 'ws://localhost:8888/dash/session_counts' 
     while True: 
         try:
             async with open_websocket_url(ws_uri) as ws:
