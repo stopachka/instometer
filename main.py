@@ -120,7 +120,7 @@ async def websocket_worker():
     sleep_secs = 5
     max_reconnects = 12
     num_reconnects = 0
-    ws_uri = 'ws://localhost:8888/dash/session_counts' 
+    ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
     while True: 
         try:
             async with open_websocket_url(ws_uri) as ws:
