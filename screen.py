@@ -14,7 +14,7 @@ def create_report_panel(report):
     table.add_column(max_width=5, justify="right", style="blue on black")
 
     sorted_report_items = sorted(report.items(), key=lambda item: item[1]["count"], reverse=True)
-    top_report_items = sorted_report_items[:5]  
+    top_report_items = sorted_report_items[:4]  
     for _, data in top_report_items:
         email = data["creator-email"]
         app_title = data["app-title"]
@@ -33,7 +33,6 @@ def draw_screen(report, count):
     number_text = Digits(str(count), style="bold blue on black")
     number_panel = Panel(
         Align(number_text, align="center", vertical="middle"),
-        title="Total Count",
         style="bold blue on black",
         box=box.MINIMAL,
         expand=True,
