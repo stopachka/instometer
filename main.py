@@ -32,10 +32,7 @@ def get_shared_report():
     return shared_report 
 
 def total_count(report):
-    # (XXX) 
-    # We have some empty sessions. These ~should disappear but 
-    # seem to hang around for a bit. Let's ignore them for now.
-    return sum([r['count'] for k, r in report.items() if k != ''])
+    return sum([r['count'] for r in report.values()]) 
 
 # -------------
 # Servo Worker 
@@ -110,7 +107,12 @@ async def ws_message_worker(ws):
         message = await ws.get_message()
         log.info(f"[ws] message {message}")
         m = json.loads(message)
+        # (XXX) 
+        # We currently get some empty sessions. 
+        # We should clean these up at the source, but 
+        # for now we'll just ignore them here.
         report = m['report']
+        report.pop("", None) 
         set_shared_report(report) 
 
 async def ws_heartbeat_worker(ws, timeout_secs=10, interval_secs=5):
