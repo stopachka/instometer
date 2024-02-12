@@ -8,9 +8,9 @@ from rich.table import Table
 from textual.renderables.digits import Digits
 
 def create_report_panel(report):
-    table = Table(show_header=False, style="blue on black")
-    table.add_column(max_width=10, style="blue on black")
-    table.add_column(max_width=10, style="blue on black")
+    table = Table.grid(padding=1)
+    table.add_column(max_width=25, style="blue on black")
+    table.add_column(max_width=25, style="blue on black")
     table.add_column(max_width=5, justify="right", style="blue on black")
 
     # Add rows to the table
@@ -30,10 +30,6 @@ def create_report_panel(report):
     return report_panel
 
 def draw_screen(report, count):
-    console = Console()
-    layout = Layout()
-
-    # Create the total count panel
     number_text = Digits(str(count), style="bold blue on black")
     number_panel = Panel(
         Align(number_text, align="center", vertical="middle"),
@@ -42,20 +38,17 @@ def draw_screen(report, count):
         box=box.MINIMAL,
         expand=True,
     )
-
-    # Create the report panel
+    
     report_panel = create_report_panel(report)
-
-    # Split the layout into two parts
+    
+    layout = Layout()
     layout.split_row(
         Layout(name="left"),
-        Layout(name="right")
+        Layout(name="right", minimum_size=35)
     )
-
-    # Update the left and right parts of the layout
     layout["left"].update(number_panel)
     layout["right"].update(report_panel)
+    console = Console()
 
-    # Print the layout
     console.print(layout, justify="center")
 
