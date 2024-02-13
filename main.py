@@ -17,7 +17,7 @@ if USE_REAL_HARDWARE:
     from servo import set_servo_angle 
 else: 
     def set_servo_angle(angle): 
-        log.info(f"[virtual-servo] set angle = {angle}") 
+        log.info("[virtual-servo] set angle = %s", angle) 
 
 # ------
 # Report 
@@ -105,7 +105,7 @@ async def ws_handle_open(ws):
 async def ws_message_worker(ws):
     while True:
         message = await ws.get_message()
-        log.info(f"[ws] message {message}")
+        log.info("[ws] message = %s", message)
         m = json.loads(message)
         # (XXX) 
         # We currently get some empty sessions. 
@@ -138,7 +138,7 @@ async def websocket_worker():
             num_reconnects += 1
             if num_reconnects > max_reconnects:
                 raise e
-            log.info(f"[ws] reconnecting in {sleep_secs} seconds")
+            log.info("[ws] reconnecting in %s seconds", sleep_secs)
             await trio.sleep(sleep_secs)
 
 # ----
@@ -161,5 +161,5 @@ if __name__ == "__main__":
         sys.exit(0)
     except Exception as e:
         shutdown_hardware()
-        log.error("Uncaught error", e)
+        log.error("Uncaught error", exc_info=True)
         raise e
