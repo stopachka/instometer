@@ -8,11 +8,27 @@ from rich.table import Table
 from textual.renderables.digits import Digits
 from log import log 
 
-def create_report_panel(report):
+
+def status_color(status): 
+    if status == 'connected':
+        return "green"
+    elif status == 'disconnected':
+        return "red"
+    else: 
+        return "grey82" 
+
+def status_text(status):
+    color = status_color(status)
+    status_text = Text("●", style=color)
+    return status_text
+
+def create_report_panel(status, report):
     table = Table.grid(padding=1)
     table.add_column(max_width=25, style="blue on black")
     table.add_column(max_width=25, style="blue on black")
     table.add_column(max_width=5, justify="right", style="blue on black")
+    
+    table.add_row(None, None, status_text(status))
 
     sorted_report_items = sorted(report.items(), key=lambda item: item[1]["count"], reverse=True)
     top_report_items = sorted_report_items[:4]  
@@ -30,25 +46,6 @@ def create_report_panel(report):
     )
     return report_panel
 
-def status_color(status): 
-    if status == 'connected':
-        return "green"
-    elif status == 'disconnected':
-        return "red"
-    else: 
-        return "grey82" 
-
-def create_status_panel(status):
-    color = status_color(status)
-    status_text = Text("●", style=color)
-    status_panel = Panel(
-        Align(status_text, align="center", vertical="top"),
-        style=f"bold {color} on black",
-        box=box.MINIMAL,
-        expand=True,
-    )
-    return status_panel
-
 def draw_screen(status, report, count):
     number_text = Digits(str(count), style="bold blue on black")
     number_panel = Panel(
@@ -58,9 +55,7 @@ def draw_screen(status, report, count):
         expand=True,
     )
     
-    report_panel = create_report_panel(report)
-    
-    status_panel = create_status_panel(status) 
+    report_panel = create_report_panel(status, report)
 
     layout = Layout()
     layout.split_row(
