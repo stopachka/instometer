@@ -9,3 +9,9 @@
 - log in via ssh pi@instometer.local
 - enter the default pass
 - change it: `passwd`
+
+## misc 
+
+- set -g status off
+- gnome-terminal --full-screen 
+
