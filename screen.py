@@ -65,12 +65,10 @@ def draw_screen(status, report, count):
     layout = Layout()
     layout.split_row(
         Layout(name="left"),
-        Layout(name="middle", minimum_size=35),
-        Layout(name="right", size=10)
+        Layout(name="right", minimum_size=35),
     )
     layout["left"].update(number_panel)
-    layout["middle"].update(report_panel)
-    layout["right"].update(status_panel) 
+    layout["right"].update(report_panel)
 
     console = Console()
 
