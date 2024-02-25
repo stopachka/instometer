@@ -6,6 +6,7 @@ from rich.align import Align
 from rich import box
 from rich.table import Table
 from textual.renderables.digits import Digits
+from log import log 
 
 def create_report_panel(report):
     table = Table.grid(padding=1)
@@ -29,7 +30,26 @@ def create_report_panel(report):
     )
     return report_panel
 
-def draw_screen(report, count):
+def status_color(status): 
+    if status == 'connected':
+        return "green"
+    elif status == 'disconnected':
+        return "red"
+    else: 
+        return "grey82" 
+
+def create_status_panel(status):
+    color = status_color(status)
+    status_text = Text("●", style=color)
+    status_panel = Panel(
+        Align(status_text, align="center", vertical="top"),
+        style=f"bold {color} on black",
+        box=box.MINIMAL,
+        expand=True,
+    )
+    return status_panel
+
+def draw_screen(status, report, count):
     number_text = Digits(str(count), style="bold blue on black")
     number_panel = Panel(
         Align(number_text, align="center", vertical="middle"),
@@ -40,13 +60,18 @@ def draw_screen(report, count):
     
     report_panel = create_report_panel(report)
     
+    status_panel = create_status_panel(status) 
+
     layout = Layout()
     layout.split_row(
         Layout(name="left"),
-        Layout(name="right", minimum_size=35)
+        Layout(name="middle", minimum_size=35),
+        Layout(name="right", size=10)
     )
     layout["left"].update(number_panel)
-    layout["right"].update(report_panel)
+    layout["middle"].update(report_panel)
+    layout["right"].update(status_panel) 
+
     console = Console()
 
     console.print(layout, justify="center")

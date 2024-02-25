@@ -20,7 +20,9 @@ else:
         log.info("[virtual-servo] set angle = %s", angle) 
 
 # ------
-# Report 
+# Shared Data 
+
+shared_status = 'initializaing'
 
 shared_report = {} 
 
@@ -33,6 +35,13 @@ def get_shared_report():
 
 def total_count(report):
     return sum([r['count'] for r in report.values()]) 
+
+def get_shared_status(): 
+    return shared_status 
+
+def set_shared_status(status):
+    global shared_status 
+    shared_status = status
 
 # -------------
 # Servo Worker 
@@ -82,11 +91,18 @@ async def servo_worker():
 async def screen_worker():
     log.info("[screen-worker] starting")
     last_report = None
+    last_status = None 
     while True:
-        current_report = get_shared_report() 
-        if current_report != last_report:
-            draw_screen(current_report, total_count(current_report))
-            last_report = current_report 
+        current_report = get_shared_report()
+        current_status = get_shared_status()
+        if current_report != last_report or last_status != current_status:
+            draw_screen(
+                current_status,
+                current_report, 
+                total_count(current_report)
+            )
+            last_report = current_report
+            last_status = current_status
         await trio.sleep(0.01)
 
 # ------
@@ -123,22 +139,22 @@ async def ws_heartbeat_worker(ws, timeout_secs=10, interval_secs=5):
 
 async def websocket_worker(): 
     sleep_secs = 5
-    max_reconnects = 12
-    num_reconnects = 0
     ws_uri = 'wss://api.instantdb.com/dash/session_counts' 
     while True: 
         try:
             async with open_websocket_url(ws_uri) as ws:
-                num_reconnects = 0
+                set_shared_status("connected")
                 await ws_handle_open(ws)
                 async with trio.open_nursery() as nursery:
                     nursery.start_soon(ws_heartbeat_worker, ws)
                     nursery.start_soon(ws_message_worker, ws) 
         except (ConnectionClosed, HandshakeError) as e:
-            num_reconnects += 1
-            if num_reconnects > max_reconnects:
-                raise e
-            log.info("[ws] reconnecting in %s seconds", sleep_secs)
+            set_shared_status("disconnected")
+            log.info(
+                "[ws] reconnecting in %s seconds", 
+                sleep_secs, 
+                exc_info=True
+            )
             await trio.sleep(sleep_secs)
 
 # ----
