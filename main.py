@@ -148,7 +148,11 @@ async def websocket_worker():
                 async with trio.open_nursery() as nursery:
                     nursery.start_soon(ws_heartbeat_worker, ws)
                     nursery.start_soon(ws_message_worker, ws) 
-        except (ConnectionClosed, HandshakeError) as e:
+        except (
+            ConnectionClosed, 
+            HandshakeError, 
+            trio.TooSlowError
+        ) as e:
             set_shared_status("disconnected")
             log.info(
                 "[ws] reconnecting in %s seconds", 
