@@ -56,7 +56,8 @@ def choose_denominator(count):
 def frac_to_angle(count, denominator): 
     dec = min(count / denominator, 1) 
     scaled = 180 * dec 
-    return scaled
+    rounded = round(scaled, 0) 
+    return rounded
 
 def count_to_angle(count): 
     denom = choose_denominator(count)
@@ -79,6 +80,7 @@ async def servo_worker():
     current_angle = 0
     while True:
         target_angle = count_to_angle(total_count(get_shared_report()))
+        log.info("[servo-worker] target angle = %s", target_angle)
         if (current_angle != target_angle): 
             next_angle = step_towards(current_angle, target_angle) 
             set_servo_angle(next_angle)
